@@ -1,0 +1,21 @@
+{
+  "name": "noahflow · browser test (Node 24)",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:5.2.3-24-bookworm@sha256:16eb68aa0d17eedaaf2566b180854fe4e506478e35aadf790fb02aa089024f13",
+  "remoteUser": "node",
+  "postCreateCommand": "node scripts/check-runtime.mjs && npm ci --no-audit --no-fund && npm run build && npm test",
+  "forwardPorts": [3001],
+  "portsAttributes": {
+    "3001": {
+      "label": "noahflow · 테스트 앱 (Private 유지)",
+      "protocol": "http",
+      "onAutoForward": "notify"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "remote.autoForwardPorts": false
+      }
+    }
+  }
+}

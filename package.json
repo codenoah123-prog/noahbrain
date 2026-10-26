@@ -1,0 +1,37 @@
+{
+  "name": "noahflow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite --host 127.0.0.1",
+    "dev:api": "node --watch server/index.mjs",
+    "build": "tsc -b && vite build",
+    "test": "node --test tests/*.test.mjs",
+    "start": "node server/index.mjs",
+    "local": "node --env-file-if-exists=.env scripts/start-local.mjs",
+    "package:local": "node scripts/package-local.mjs",
+    "browser": "npm run build && node --env-file-if-exists=.env server/index.mjs",
+    "check:runtime": "node scripts/check-runtime.mjs",
+    "instagram:check": "node --env-file-if-exists=.env scripts/check-instagram.mjs",
+    "instagram:webhook": "node --env-file-if-exists=.env scripts/instagram-webhook.mjs",
+    "instagram:inbox": "node --env-file-if-exists=.env scripts/instagram-inbox.mjs"
+  },
+  "dependencies": {
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "~5.7.3",
+    "vite": "^6.1.0"
+  }
+}
