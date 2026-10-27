@@ -113,7 +113,7 @@ export default function AutomationWizard({
           keywords: ["정보"],
           requireFollow: false,
           replyEnabled: true,
-          replyText: "요청하신 정보를 DM으로 보내드렸어요 💙 확인해 주세요!",
+          replyText: "DM으로 안내해 드렸어요 💙 메시지를 확인해 주세요!",
           message: { text: defaultMessage, imageUrl: "", links: [] },
           nonFollowerMessage: defaultFollowMessage,
         },
@@ -628,7 +628,9 @@ export default function AutomationWizard({
                     <textarea
                       rows={6}
                       value={draft.message.text}
-                      maxLength={2000}
+                      maxLength={
+                        import.meta.env.MODE === "cloudflare" ? 1000 : 2000
+                      }
                       onChange={(event) =>
                         patchMessage({ text: event.target.value })
                       }
@@ -639,7 +641,12 @@ export default function AutomationWizard({
                         <Sparkles size={12} /> {"{{username}}"}을 넣으면 상대방
                         이름으로 바뀌어요.
                       </small>
-                      <span>{draft.message.text.length}/2,000</span>
+                      <span>
+                        {draft.message.text.length}/
+                        {import.meta.env.MODE === "cloudflare"
+                          ? "1,000"
+                          : "2,000"}
+                      </span>
                     </div>
                   </label>
                 ) : (
@@ -702,7 +709,9 @@ export default function AutomationWizard({
                         <input
                           aria-label={`링크 ${index + 1} 버튼 이름`}
                           value={link.label}
-                          maxLength={80}
+                          maxLength={
+                            import.meta.env.MODE === "cloudflare" ? 20 : 80
+                          }
                           placeholder="버튼 이름 · 예: 자료 받기"
                           onChange={(event) =>
                             patchMessage({

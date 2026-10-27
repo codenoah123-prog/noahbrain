@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import InstagramConnectionPanel from "./components/InstagramConnectionPanel";
+import { hostedHeaders } from "./hosted-auth";
 import {
   Activity,
   ArrowDownToLine,
@@ -55,7 +56,7 @@ type Delivery = {
   automationId: string;
   username: string;
   comment: string;
-  status: "sent" | "pending_follow" | "skipped";
+  status: "sent" | "pending_follow" | "skipped" | "failed" | "uncertain";
   reason: string;
   mode: string;
   createdAt: string;
@@ -74,6 +75,8 @@ type Overview = {
     sent: number;
     pending: number;
     skipped: number;
+    failed?: number;
+    uncertain?: number;
   };
   activity: { date: string; label: string; sent: number; pending: number }[];
   recentDeliveries: Delivery[];
@@ -87,14 +90,26 @@ const sectionNames: Record<Section, string> = {
 };
 const statusNames = {
   sent: "테스트 발송",
-  pending_follow: "팔로우 확인 대기",
+  pending_follow: "답장·팔로우 확인 대기",
+  failed: "발송 실패·확인 필요",
+  uncertain: "발송 결과 확인 필요",
   skipped: "조건 미충족",
 };
+
+function deliveryLabel(delivery: Delivery) {
+  if (delivery.mode === "live" && delivery.status === "sent")
+    return "실제 전달 완료";
+  return statusNames[delivery.status] || "확인 필요";
+}
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`/api${path}`, {
     ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...hostedHeaders(),
+      ...options?.headers,
+    },
   });
   const data = await response.json();
   if (!response.ok)
@@ -221,7 +236,16 @@ function Dialog({
   );
 }
 
-export default function App() {
+export type HostedRuntime = {
+  connected: boolean;
+  enabled: boolean;
+  username?: string;
+  mode: "demo" | "live";
+};
+export default function App({
+  hostedRuntime,
+}: { hostedRuntime?: HostedRuntime } = {}) {
+  const isLive = hostedRuntime?.connected === true;
   const [section, setSection] = useState<Section>("automations");
   const [posts, setPosts] = useState<Post[]>([]);
   const [automations, setAutomations] = useState<AutomationRecord[]>([]);
@@ -393,8 +417,8 @@ export default function App() {
         dateLabel(d.createdAt),
         d.username,
         d.comment,
-        statusNames[d.status],
-        "테스트",
+        deliveryLabel(d),
+        d.mode === "live" ? "실제" : "테스트",
       ]),
     ];
     const url = URL.createObjectURL(
@@ -405,10 +429,10 @@ export default function App() {
     );
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "noahflow-test-history.csv";
+    anchor.download = "noahflow-history.csv";
     anchor.click();
     URL.revokeObjectURL(url);
-    notify("테스트 발송 기록을 내보냈어요.");
+    notify("발송 기록을 내보냈어요.");
   }
   const filtered = automations.filter(
     (a) =>
@@ -526,7 +550,12 @@ export default function App() {
           </div>
           <div className="topbar-actions">
             <span className="test-pill">
-              <span /> 테스트 모드
+              <span />{" "}
+              {isLive
+                ? hostedRuntime?.enabled
+                  ? "실제 발송 켜짐"
+                  : "실제 발송 꺼짐"
+                : "테스트 모드"}
             </span>
             <button
               className="icon-button help-top"
@@ -622,11 +651,18 @@ export default function App() {
                       <FlaskConical size={18} />
                     </div>
                     <p>
-                      <strong>지금은 테스트 워크스페이스예요.</strong>
+                      <strong>
+                        {isLive
+                          ? hostedRuntime?.enabled
+                            ? "설정한 자동화의 실제 발송이 켜져 있어요."
+                            : "계정은 연결됐고 실제 발송은 꺼져 있어요."
+                          : "지금은 테스트 워크스페이스예요."}
+                      </strong>
                       <span>
                         {" "}
-                        샘플 콘텐츠로 자동화를 만들어 보세요. 실제 DM은 발송되지
-                        않아요.
+                        {isLive
+                          ? "실제 발송은 사이트 상단 계정 설정에서 관리해요. 댓글 테스트는 계속 시뮬레이션으로 동작해요."
+                          : "샘플 콘텐츠로 자동화를 만들어 보세요. 실제 DM은 발송되지 않아요."}
                       </span>
                     </p>
                     <button onClick={() => setSection("settings")}>
@@ -644,12 +680,14 @@ export default function App() {
                         sub: `전체 ${stats?.automations || 0}개의 자동화`,
                       },
                       {
-                        label: "테스트 DM 발송",
+                        label: isLive ? "자료 DM 전달 완료" : "테스트 DM 발송",
                         value: stats?.sent || 0,
                         unit: "건",
                         icon: Send,
                         color: "blue",
-                        sub: "조건을 만족한 테스트 메시지",
+                        sub: isLive
+                          ? "실제 전송 결과가 확인된 전달"
+                          : "조건을 만족한 테스트 메시지",
                       },
                       {
                         label: "팔로우 확인 대기",
@@ -660,8 +698,10 @@ export default function App() {
                         sub: "팔로우 확인 후 정보 전달",
                       },
                       {
-                        label: "조건 미충족",
-                        value: stats?.skipped || 0,
+                        label: isLive ? "발송 확인 필요" : "조건 미충족",
+                        value: isLive
+                          ? (stats?.failed || 0) + (stats?.uncertain || 0)
+                          : stats?.skipped || 0,
                         unit: "건",
                         icon: ShieldCheck,
                         color: "green",
@@ -818,7 +858,8 @@ export default function App() {
                           <div className="automation-card-bottom">
                             <span className="card-delivery">
                               <Send size={13} />
-                              <strong>{a.counts?.sent || 0}</strong> 테스트 발송
+                              <strong>{a.counts?.sent || 0}</strong>{" "}
+                              {isLive ? "자료 전달" : "테스트 발송"}
                             </span>
                             <div className="card-actions">
                               <button
@@ -1025,7 +1066,7 @@ export default function App() {
                           </span>
                           <span>
                             <strong>@{d.username}</strong>
-                            <small>{statusNames[d.status]}</small>
+                            <small>{deliveryLabel(d)}</small>
                           </span>
                           <time>{dateLabel(d.createdAt)}</time>
                         </button>
@@ -1122,7 +1163,10 @@ export default function App() {
                     <div className="segmented">
                       {[
                         { value: "all", label: "전체" },
-                        { value: "sent", label: "테스트 발송" },
+                        {
+                          value: "sent",
+                          label: isLive ? "전달 완료" : "테스트 발송",
+                        },
                         { value: "pending_follow", label: "확인 대기" },
                         { value: "skipped", label: "조건 미충족" },
                       ].map((f) => (
@@ -1136,7 +1180,9 @@ export default function App() {
                       ))}
                     </div>
                     <span className="subtle-label">
-                      실제 DM은 발송되지 않았어요
+                      {isLive
+                        ? "실제·테스트 기록의 모드를 확인하세요"
+                        : "실제 DM은 발송되지 않았어요"}
                     </span>
                   </div>
                   {deliveries.filter(
@@ -1180,7 +1226,7 @@ export default function App() {
                                   <span
                                     className={`delivery-badge ${d.status}`}
                                   >
-                                    {statusNames[d.status]}
+                                    {deliveryLabel(d)}
                                   </span>
                                 </td>
                                 <td className="date-cell">
@@ -1234,10 +1280,22 @@ export default function App() {
                         <Instagram size={30} />
                       </span>
                       <div>
-                        <h3>아직 연결된 계정이 없어요</h3>
-                        <p>현재 모든 자동화는 테스트 모드에서만 실행돼요.</p>
+                        <h3>
+                          {isLive
+                            ? `@${hostedRuntime?.username || "연결된 계정"}`
+                            : "아직 연결된 계정이 없어요"}
+                        </h3>
+                        <p>
+                          {isLive
+                            ? hostedRuntime?.enabled
+                              ? "실제 발송이 켜져 있어요. 발송 기록을 확인해 주세요."
+                              : "상단 계정 설정에서 실제 발송을 켤 수 있어요."
+                            : "현재 모든 자동화는 테스트 모드에서만 실행돼요."}
+                        </p>
                       </div>
-                      <span className="neutral-badge">미연결</span>
+                      <span className="neutral-badge">
+                        {isLive ? "계정 연결됨" : "미연결"}
+                      </span>
                     </div>
                     <div className="integration-info">
                       <ShieldCheck size={18} />
@@ -1247,7 +1305,17 @@ export default function App() {
                         마세요.
                       </p>
                     </div>
-                    <InstagramConnectionPanel />
+                    {hostedRuntime ? (
+                      <div className="integration-info">
+                        <ShieldCheck size={18} />
+                        <p>
+                          계정 연결과 웹훅, 실제 발송은 사이트 상단의 ‘계정
+                          설정’에서 관리하세요.
+                        </p>
+                      </div>
+                    ) : (
+                      <InstagramConnectionPanel />
+                    )}
                     <h3 className="settings-subheading">
                       실제 연동 전 확인할 사항
                     </h3>
@@ -1285,8 +1353,9 @@ export default function App() {
                     </ol>
                     <div className="settings-footnote">
                       <Clock3 size={15} />
-                      실제 API 연동은 아직 구성되지 않았어요. 테스트 데이터는 이
-                      기기에 저장돼요.
+                      {hostedRuntime
+                        ? "설정과 기록은 내 Cloudflare D1 저장소에 보관돼요. 토큰은 암호화해 저장해요."
+                        : "실제 API 연동은 아직 구성되지 않았어요. 테스트 데이터는 이 기기에 저장돼요."}
                     </div>
                   </section>
                   <section className="panel">
@@ -1338,7 +1407,8 @@ export default function App() {
                 </span>
                 <span>
                   <span className="tiny-dot" />
-                  {activeCount}개의 자동화 활성 · 테스트 모드
+                  {activeCount}개의 자동화 활성 ·{" "}
+                  {isLive ? "계정 연결됨" : "테스트 모드"}
                 </span>
               </footer>
             </>
@@ -1579,7 +1649,7 @@ export default function App() {
         >
           <div className="detail-content">
             <span className={`delivery-badge ${detail.status}`}>
-              {statusNames[detail.status]}
+              {deliveryLabel(detail)}
             </span>
             <dl>
               <dt>댓글</dt>
@@ -1602,7 +1672,7 @@ export default function App() {
                 </>
               )}
             </dl>
-            {detail.status === "pending_follow" && (
+            {detail.status === "pending_follow" && detail.mode === "demo" && (
               <button
                 className="primary-button"
                 onClick={() => verifyFollow(detail)}
@@ -1613,7 +1683,9 @@ export default function App() {
               </button>
             )}
             <p className="test-disclaimer">
-              테스트 기록이며 실제 메시지는 전송되지 않았어요.
+              {detail.mode === "live"
+                ? "실제 이벤트의 처리 기록입니다. 결과 확인이 안 된 발송은 자동 재전송하지 않아요."
+                : "테스트 기록이며 실제 메시지는 전송되지 않았어요."}
             </p>
           </div>
         </Dialog>

@@ -3423,3 +3423,7 @@ td strong {
   color: #9274a7;
   margin-top: 9px;
 }
+
+.delivery-badge.failed,.delivery-badge.uncertain{background:#fff0f2;color:#b46a80}.delivery-icon.failed,.delivery-icon.uncertain{background:#fff0f2;color:#b46a80}
+
+.hosted-auth-card p,.hosted-setup-lead,.hosted-field-helper{color:#8f7ca4}.hosted-setup-title{color:#4a3c60}

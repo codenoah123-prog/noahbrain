@@ -10,16 +10,21 @@
     "dev": "node scripts/dev.mjs",
     "dev:web": "vite --host 127.0.0.1",
     "dev:api": "node --watch server/index.mjs",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && vite build --mode cloudflare",
     "test": "node --test tests/*.test.mjs",
     "start": "node server/index.mjs",
     "local": "node --env-file-if-exists=.env scripts/start-local.mjs",
     "package:local": "node scripts/package-local.mjs",
-    "browser": "npm run build && node --env-file-if-exists=.env server/index.mjs",
+    "browser": "npm run build:node && node --env-file-if-exists=.env server/index.mjs",
     "check:runtime": "node scripts/check-runtime.mjs",
     "instagram:check": "node --env-file-if-exists=.env scripts/check-instagram.mjs",
     "instagram:webhook": "node --env-file-if-exists=.env scripts/instagram-webhook.mjs",
-    "instagram:inbox": "node --env-file-if-exists=.env scripts/instagram-inbox.mjs"
+    "instagram:inbox": "node --env-file-if-exists=.env scripts/instagram-inbox.mjs",
+    "build:cloudflare": "npm run build",
+    "cf:dev": "npm run build:cloudflare && wrangler dev --local",
+    "deploy": "npm run build:cloudflare && wrangler deploy",
+    "cf:check": "npm run build:cloudflare && wrangler deploy --dry-run --outdir dist-worker",
+    "build:node": "tsc -b && vite build"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -31,7 +36,19 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "miniflare": "^4.20260730.0",
     "typescript": "~5.7.3",
-    "vite": "^6.1.0"
+    "vite": "^6.1.0",
+    "wrangler": "^4.153.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "ADMIN_PASSWORD": {
+        "description": "이 사이트에 로그인할 관리자 비밀번호를 20자 이상으로 직접 정하세요. 영문·숫자·기호를 섞고 다른 곳의 비밀번호와 다르게 만드세요. 인스타그램 비밀번호가 아닙니다."
+      },
+      "DB": {
+        "description": "자동화 설정과 발송 기록을 보관하는 개인용 D1 데이터베이스입니다. Free 플랜 범위에서 사용하세요."
+      }
+    }
   }
 }

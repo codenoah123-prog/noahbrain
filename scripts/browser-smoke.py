@@ -12,7 +12,7 @@ from playwright.sync_api import sync_playwright, expect
 
 ROOT = Path(__file__).resolve().parents[1]
 if not (ROOT / "dist/index.html").exists():
-    raise SystemExit("Run npm run build first.")
+    raise SystemExit("Run npm run build:node first.")
 with tempfile.TemporaryDirectory(prefix="noahflow-browser-") as temp:
     with socket.socket() as available:
         available.bind(("127.0.0.1", 0))

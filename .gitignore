@@ -11,3 +11,8 @@ test-results/
 downloads/
 docs/screenshots/
 docs/preview.html
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.wrangler/
+dist-worker/

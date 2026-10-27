@@ -1,5 +1,7 @@
 # 실제 Instagram 연동 준비
 
+> Cloudflare 웹 버전의 설정·실발송 코드는 `workers/`에 있습니다. 아래 Node CLI 안내는 기존 진단 도구이며, 일반 사용자는 사이트의 계정 연결 화면을 사용합니다. 실제 계정 배포·발송 검증은 아직 미실행입니다.
+
 확인일: 2026-10-26. 현재 앱은 **실제 Instagram에 연결하지 않는 테스트 모드**입니다. 아래 내용은 공식 자료를 확인한 결과이며, 사용자 계정에서 API 호출이나 실제 발송을 성공시킨 결과가 아닙니다.
 
 ## 확인한 공식 자료
@@ -71,7 +73,7 @@ GitHub의 사용자 **Settings → Codespaces → Secrets**에서 이 저장소�
 | `INSTAGRAM_ACCOUNT_ID`   | 앱과 연결한 전문 Instagram 계정의 숫자 ID. 사용자명이나 Meta 앱 ID와 다름                |
 | `INSTAGRAM_ACCESS_TOKEN` | 그 계정·앱의 Instagram User access token. 실제 값은 채팅·소스·화면에 넣지 않음           |
 
-개인 PC 개발에서는 Git에서 제외된 `.env`를 사용할 수 있고 `.env.example`의 빈 항목을 참고합니다. 저장소에는 실제 값을 넣지 않습니다.
+개인 PC 개발에서는 Git에서 제외된 `.env`를 사용할 수 있고 `docs/instagram-node-env.example`의 빈 항목을 참고합니다. 저장소에는 실제 값을 넣지 않습니다.
 
 ### 2. 읽기 전용 구독 확인
 
